@@ -1,0 +1,7 @@
+report_header_info:
+  - Pipeline: "lorgen-variant-calling-pipeline"
+  - Version: "1.0.0"
+  - Author: "Felipe Perez Martinez"
+
+title: "Lorgen Variant-Calling Pipeline — QC Report"
+subtitle: "Targeted DNA sequencing: FastQC results for aligned and deduplicated BAMs"

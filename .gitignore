@@ -1,0 +1,45 @@
+# Nextflow working directories and cache
+work/
+.nextflow*
+.cache/
+.nxf*
+
+# Nextflow execution reports (generated into results/)
+trace.txt
+trace.tsv
+timeline.html
+execution_report.html
+dag.svg
+
+# MultiQC and FastQC outputs
+multiqc_report.html
+multiqc_data/
+*_fastqc.html
+*_fastqc.zip
+
+# Logs
+*.log
+*.log.*
+
+# Editor and OS files
+*.ipynb
+*.swp
+.DS_Store
+Thumbs.db
+
+# Container image files
+*.img
+*.sif
+
+# Pipeline results
+results/
+
+# Input data — never commit sequencing data
+*.fastq.gz
+*.fq.gz
+*.bam
+*.bai
+*.cram
+*.vcf
+*.vcf.gz
+*.bcf
