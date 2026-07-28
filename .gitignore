@@ -43,6 +43,3 @@ results/
 *.vcf
 *.vcf.gz
 *.bcf
-
-# Personal notes — kept locally only, never pushed
-PIPELINE_WALKTHROUGH.md
