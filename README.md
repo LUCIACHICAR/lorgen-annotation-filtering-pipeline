@@ -156,7 +156,7 @@ This repository contains pipeline code only. No sequencing data, reference genom
 If you use this pipeline, please cite:
 
 **This pipeline:**
-Perez Martinez F, Castañeda Sastre E. (2025). *lorgen-annotation-filtering-pipeline*. GitHub.
+Chica Redecillas L. (2026). *lorgen-annotation-filtering-pipeline*. GitHub.
 
 **Underlying tools:**
 - Danecek P et al. (2021). Twelve years of SAMtools and BCFtools. *GigaScience*, 10(2). [bcftools]
@@ -166,8 +166,5 @@ Perez Martinez F, Castañeda Sastre E. (2025). *lorgen-annotation-filtering-pipe
 
 ## Contributors
 
-**Erika Castañeda Sastre**
-erikatatianacs@gmail.com — [ErikaBioInfo](https://github.com/ErikaBioInfo)
-
-**Felipe Perez Martinez**
-fpmartinez10@gmail.com — [fpmartinez10](https://github.com/fpmartinez10)
+**Lucía Chica Redecillas**
+chica.redecillas.l@gmail.com — [LUCIACHICAR](https://github.com/LUCIACHICAR)
