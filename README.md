@@ -80,10 +80,8 @@ lorgen_annotation_pipeline/
 ### Run
 
 ```bash
-nextflow run main_annotation.nf \
-  -C conf/annotation.config \
+nextflow -log lorgen_annotation_pipeline/logs/nextflow.log -C conf/annotation.config run main_annotation.nf \
   -profile docker \
-  -log         lorgen_annotation_pipeline/logs/nextflow.log \
   -work-dir    lorgen_annotation_pipeline/work \
   --vcf_dir      lorgen_annotation_pipeline/data/vcf_input \
   --results_dir  lorgen_annotation_pipeline/results
@@ -95,7 +93,7 @@ For long-running jobs, use `screen` or `tmux`:
 
 ```bash
 screen -S annotation
-nextflow run main_annotation.nf -C conf/annotation.config -profile docker ...
+nextflow -C conf/annotation.config run main_annotation.nf -profile docker ...
 ```
 
 ---
@@ -166,5 +164,5 @@ Chica Redecillas L. (2026). *lorgen-annotation-filtering-pipeline*. GitHub.
 
 ## Contributors
 
-**Lucía Chica Redecillas**
+**Lucía Chica-Redecillas**
 chica.redecillas.l@gmail.com — [LUCIACHICAR](https://github.com/LUCIACHICAR)
