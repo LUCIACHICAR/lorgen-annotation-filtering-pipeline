@@ -154,7 +154,7 @@ This repository contains pipeline code only. No sequencing data, reference genom
 If you use this pipeline, please cite:
 
 **This pipeline:**
-Chica Redecillas L. (2026). *lorgen-annotation-filtering-pipeline*. GitHub.
+Chica-Redecillas L. (2026). *lorgen-annotation-filtering-pipeline*. GitHub.
 
 **Underlying tools:**
 - Danecek P et al. (2021). Twelve years of SAMtools and BCFtools. *GigaScience*, 10(2). [bcftools]
