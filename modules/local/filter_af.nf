@@ -10,8 +10,8 @@ process FILTER_AF {
 
     script:
     """
-    # Retain PASS variants with gnomAD AF < 0.05
-    bcftools view --threads ${task.cpus} -f PASS -i 'INFO/gnomAD_AF<0.05' ${vcf} -Oz -o ${sample_id}_filtered.vcf.gz
+    # Retain PASS variants with gnomAD AF < 0.05 or no gnomAD AF annotation (e.g. novel variants).
+    bcftools view --threads ${task.cpus} -f PASS -i 'INFO/gnomAD_AF<0.05 || gnomAD_AF="."' ${vcf} -Oz -o ${sample_id}_filtered.vcf.gz
     bcftools index -f ${sample_id}_filtered.vcf.gz
     """
 }

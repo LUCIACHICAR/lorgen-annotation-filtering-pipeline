@@ -1,0 +1,8 @@
+##fileformat=VCFv4.2
+##contig=<ID=chr19,length=59128983>
+##contig=<ID=chr7,length=159138663>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr19	45412079	rs7412_multiallelic_test	C	T,G	60	PASS	.
+chr19	45411941	rs429358_single_snp	T	C	60	PASS	.
+chr7	117199644	rs113993960_CFTR_delF508_VERIFY_REF	ATCT	A	60	PASS	.
+chr19	45411990	private_variant_absent_from_gnomad_VERIFY_REF	G	A	60	PASS	.
