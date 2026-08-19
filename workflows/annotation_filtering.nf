@@ -9,6 +9,8 @@ include { FILTER_BY_GENES  } from '../modules/local/filter_by_genes'
 workflow ANNOTATION_FILTERING {
 
     if (!params.vcf_dir) error "ERROR: --vcf_dir is required"
+    if (!params.reference_fasta)       error "ERROR: --reference_fasta is required (needed to left-align indels in NORMALIZE_VCF)"
+    if (!params.reference_fasta_index) error "ERROR: --reference_fasta_index is required (needed to left-align indels in NORMALIZE_VCF)"
 
     // Fail fast if none of the known source folders contain any VCFs
     def source_dirs = ['VCF_NOVOGENE', 'VCF_NEXT', 'VCF_CEGAT'].collect { file("${params.vcf_dir}/${it}") }
@@ -61,8 +63,8 @@ workflow ANNOTATION_FILTERING {
     // Empty file → no filtering (handled inside FILTER_BY_GENES).
     gene_list = params.gene_list ? file(params.gene_list) : file("${params.vcf_dir}/genes.txt")
 
-    // Module 1 – normalise multiallelic sites
-    normalized = NORMALIZE_VCF(vcf_channel)
+    // Module 1 – normalise multiallelic sites and left-align indels
+    normalized = NORMALIZE_VCF(vcf_channel, file(params.reference_fasta), file(params.reference_fasta_index))
 
     // Module 2 – annotate with gnomAD AF
     annotated = ANNOTATE_VCF(normalized, file(params.exome_vcf), file(params.exome_index))
