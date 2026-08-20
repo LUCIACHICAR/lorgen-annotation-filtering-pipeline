@@ -14,7 +14,7 @@ pequeños, reales y rápidos de ejecutar.
 |---|---|---|---|
 | `chr1:12573` | `T`→`C` | Real, extraído de gnomAD (`FILTER=PASS`, `AF=0.000476644`) | SNP simple: debe pasar sin cambios por `NORMALIZE_VCF` y anotarse con su `gnomAD_AF` real en `ANNOTATE_VCF` |
 | `chr1:12580` | `G`→`A,T` | `REF` real (confirmado con `samtools faidx` sobre el genoma real); ambos `ALT` inventados. Posición confirmada **ausente** de gnomAD (`bcftools view` no devuelve nada ahí) | `bcftools norm -m -any` debe partirlo en dos líneas (`G>A` y `G>T`); ninguna de las dos debería encontrar match en gnomAD → prueba que `FILTER_AF` **conserva** lo que no tiene dato (el cambio que hiciste), y de paso prueba la división de multialélicos |
-| `chr1:12738` | `CAGTG`→`C` | Real, extraído de gnomAD (`FILTER=PASS`, `AF=6.04522e-05`) | Indel real: prueba el arreglo de left-alignment (`-f`) y que, tras normalizar, sigue encontrando match en gnomAD |
+| `chr1:12742` | `GAGTG`→`G` | El mismo indel real de gnomAD (`FILTER=PASS`, `AF=6.04522e-05`, canónico en `chr1:12738 CAGTG>C`), pero **anclado a propósito en la copia derecha** de la repetición en tándem `AGTG`/`AGTG` (`chr1:12739-12746`) en vez de la izquierda — un desplazamiento real y válido, no un error de datos | Indel real, deliberadamente no-canónico: solo debería encontrar match en gnomAD **si** `NORMALIZE_VCF` lo realinea de vuelta a `chr1:12738`. Prueba el arreglo de left-alignment (`-f`) de verdad, no solo que un indel ya-canónico siga matcheando |
 
 No hace falta un cuarto registro para "SNP único" aparte — cuando `chr1:12580`
 se divida, cualquiera de sus dos líneas resultantes ya es, de cara al resto
@@ -32,21 +32,17 @@ mkdir -p /tmp/test_vcf_input/VCF_NEXT
 cp sample_test.vcf.gz /tmp/test_vcf_input/VCF_NEXT/
 ```
 
-## Resultado esperado al final del pipeline (`_final.vcf.gz`, sin filtro de genes)
+## Resultado esperado — comparación antes/después (rama `main` vs `fix/indel-left-alignment`)
 
-- `chr1:12573 T>C` → AF real 0.000476644 (muy por debajo de 0.05) → **debe sobrevivir**.
-- `chr1:12580 G>A` y `G>T` → sin dato en gnomAD → **deben sobrevivir** (gracias al cambio en `FILTER_AF`; antes de ese cambio se habrían descartado).
-- `chr1:12738 CAGTG>C` → AF real 6.04522e-05 (muy raro) → **debe sobrevivir**.
+| Variante | En `main` (código actual) | En `fix/indel-left-alignment` |
+|---|---|---|
+| `chr1:12573 T>C` | Sobrevive (`gnomAD_AF=0.000476644`) | Igual, sin cambios — sirve de control |
+| `chr1:12580 G>A` / `G>T` | **Se descartan** (sin dato en gnomAD, `FILTER_AF` antiguo las excluye) | **Sobreviven** (el cambio en `FILTER_AF` las conserva) |
+| `chr1:12742 GAGTG>G` (indel desplazado) | **No encuentra match** (queda en `POS=12742`, gnomAD lo tiene en `12738`) → se descarta | `NORMALIZE_VCF` lo realinea a `chr1:12738 CAGTG>C` → **sí encuentra match** (`gnomAD_AF=6.04522e-05`) → sobrevive |
 
-Con estos tres registros, las cuatro variantes resultantes tras la
-normalización deberían sobrevivir todas al filtro — si alguna desaparece,
-es señal de que algo no está funcionando como se espera.
-
-## Comparación antes/después (rama `main` vs `fix/indel-left-alignment`)
-
-Este mismo fichero sirve para el plan de "correr dos veces y comparar":
-- En `main` (código actual, sin `-f` en norm ni el cambio de `FILTER_AF`):
-  `chr1:12580` (ambas líneas, sin dato) se **descartaría**. El indel
-  `chr1:12738`, si no venía ya left-aligned, podría no encontrar match y
-  también descartarse.
-- En `fix/indel-left-alignment`: las cuatro variantes deberían sobrevivir.
+Ya confirmamos el "antes" con la versión anterior de este fichero (cuando el
+indel todavía estaba en su posición canónica `12738`) — con el indel ya
+desplazado a `12742`, **hay que repetir la pasada de `main`** para tener el
+"antes" correcto de este caso concreto: ahora se espera que en `main`
+sobrevivan **solo 1** de las 4 variantes resultantes (`chr1:12573`), y que en
+la rama con el arreglo sobrevivan las **4**.
