@@ -4,6 +4,7 @@ include { MERGE_SNP_INDEL  } from '../modules/local/merge_snp_indel'
 include { NORMALIZE_VCF    } from '../modules/local/normalize_vcf'
 include { ANNOTATE_VCF     } from '../modules/local/annotate_vcf'
 include { FILTER_AF        } from '../modules/local/filter_af'
+include { ANNOTATE_GENES   } from '../modules/local/annotate_genes'
 include { FILTER_BY_GENES  } from '../modules/local/filter_by_genes'
 
 workflow ANNOTATION_FILTERING {
@@ -11,6 +12,8 @@ workflow ANNOTATION_FILTERING {
     if (!params.vcf_dir) error "ERROR: --vcf_dir is required"
     if (!params.reference_fasta)       error "ERROR: --reference_fasta is required (needed to left-align indels in NORMALIZE_VCF)"
     if (!params.reference_fasta_index) error "ERROR: --reference_fasta_index is required (needed to left-align indels in NORMALIZE_VCF)"
+    if (!params.genes_bed)             error "ERROR: --genes_bed is required (needed to assign genes in ANNOTATE_GENES)"
+    if (!params.genes_bed_index)       error "ERROR: --genes_bed_index is required (needed to assign genes in ANNOTATE_GENES)"
 
     // Fail fast if none of the known source folders contain any VCFs
     def source_dirs = ['VCF_NOVOGENE', 'VCF_NEXT', 'VCF_CEGAT'].collect { file("${params.vcf_dir}/${it}") }
@@ -69,9 +72,12 @@ workflow ANNOTATION_FILTERING {
     // Module 2 – annotate with gnomAD AF
     annotated = ANNOTATE_VCF(normalized, file(params.exome_vcf), file(params.exome_index))
 
-    // Module 3 – retain PASS variants with gnomAD AF < 0.05
+    // Module 3 – retain PASS variants with gnomAD AF < 0.05, or no gnomAD data at all
     filtered = FILTER_AF(annotated)
 
-    // Module 4 – filter by gene list (skipped if txt is empty)
-    FILTER_BY_GENES(filtered, gene_list)
+    // Module 4 – assign gene(s) overlapping each variant's position
+    gene_annotated = ANNOTATE_GENES(filtered, file(params.genes_bed), file(params.genes_bed_index))
+
+    // Module 5 – filter by gene list (skipped if txt is empty)
+    FILTER_BY_GENES(gene_annotated, gene_list)
 }
