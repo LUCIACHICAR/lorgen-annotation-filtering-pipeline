@@ -11,13 +11,16 @@ Takes VCF files from three known sources (NOVOGENE, NEXT, CEGAT), annotates them
 ```
 vcf_dir/{NOVOGENE,NEXT,CEGAT}/
   └─ MERGE_SNP_INDEL    NOVOGENE only: merge per-sample SNP + Indel VCFs
-  └─ NORMALIZE_VCF      normalise multiallelic sites (bcftools norm)
+  └─ NORMALIZE_VCF      split multiallelic sites and left-align indels (bcftools norm -f -c e)
   └─ ANNOTATE_VCF       annotate with gnomAD allele frequency (gnomAD_AF)
-  └─ FILTER_AF          retain PASS variants with gnomAD_AF < 0.05
+  └─ FILTER_AF          retain PASS variants with gnomAD_AF < 0.05, or no gnomAD_AF at all
+  └─ ANNOTATE_GENES     assign gene(s) overlapping each variant's position (GENCODE BED)
   └─ FILTER_BY_GENES    filter by gene list (genes.txt); skipped if file is empty
 ```
 
 All three sources use `chr`-prefixed chromosome names, same as the gnomAD reference (`gnomad.withchr.bgz.vcf.gz`) — no chromosome renaming is needed.
+
+**NOVOGENE SNP+Indel matching:** two files merge only if their names are identical except for the `snp`/`indel` token. A sample with only one of the two files proceeds with a warning; anything else (an unrecognised filename, or more/duplicate files for the same sample) stops the pipeline with an error rather than guessing.
 
 ---
 
@@ -58,6 +61,10 @@ Any source folder may be empty (its samples are simply skipped). If **all three*
 | `--vcf_dir` | Directory containing `VCF_NOVOGENE/`, `VCF_NEXT/`, `VCF_CEGAT/` subfolders and optional `genes.txt` | `null` (required) |
 | `--exome_vcf` | gnomAD VCF (bgzipped + tabix-indexed) | `/mnt/data/exome/gnomad.withchr.bgz.vcf.gz` |
 | `--exome_index` | gnomAD `.tbi` tabix index | `/mnt/data/exome/gnomad.withchr.bgz.vcf.gz.tbi` |
+| `--reference_fasta` | Reference genome FASTA matching the gnomAD build (GRCh37, `chr`-prefixed), indexed with `samtools faidx` — used to left-align indels | `/mnt/data/hg19_ref_genome/genome.fa` |
+| `--reference_fasta_index` | `.fai` index of the reference FASTA | `/mnt/data/hg19_ref_genome/genome.fa.fai` |
+| `--genes_bed` | Gene regions (BED, bgzipped + tabix-indexed; `chrom, start, end, gene`), derived from a GENCODE GTF — used to assign genes by position overlap | `/mnt/data/hg19_ref_genome/genes.bed.gz` |
+| `--genes_bed_index` | `.tbi` index of `--genes_bed` | `/mnt/data/hg19_ref_genome/genes.bed.gz.tbi` |
 | `--gene_list` | Explicit path to gene list (overrides auto-detection in `--vcf_dir`) | `null` |
 | `--results_dir` | Output directory | `./results` |
 
@@ -68,16 +75,28 @@ Any source folder may be empty (its samples are simply skipped). If **all three*
 ### Server directory layout
 
 ```
-lorgen_annotation_pipeline/
+lorgen_annotation_pipeline/     ← this repo, cloned on the server
 ├── data/
-│   ├── vcf_input/      ← NOVOGENE/, NEXT/, CEGAT/ + genes.txt
-│   └── references/     ← gnomAD VCF + index
+│   └── vcf_input/      ← NOVOGENE/, NEXT/, CEGAT/ + genes.txt
 ├── results/            ← pipeline outputs (--results_dir)
 ├── logs/               ← Nextflow execution logs (-log)
 └── work/               ← Nextflow work directory, temporary (-work-dir)
+
+/mnt/data/                      ← shared reference files, outside this repo
+├── exome/               ← gnomAD VCF + index
+└── hg19_ref_genome/     ← reference FASTA + genes BED (see Parameters)
 ```
 
 ### Run
+
+`run.sh` wraps the full command below — the only two things to edit between runs are the two paths at the top of that file (`VCF_DIR`, `RESULTS_DIR`); the Nextflow invocation itself never needs to change:
+
+```bash
+screen -dRR annotation   # keeps running if the SSH session drops; Ctrl+A D to detach
+./run.sh
+```
+
+Equivalent, spelled out in full:
 
 ```bash
 nextflow -log lorgen_annotation_pipeline/logs/nextflow.log -C conf/annotation.config run main_annotation.nf \
@@ -87,14 +106,7 @@ nextflow -log lorgen_annotation_pipeline/logs/nextflow.log -C conf/annotation.co
   --results_dir  lorgen_annotation_pipeline/results
 ```
 
-`--exome_vcf` and `--exome_index` already point to the gnomAD files on the server (`/mnt/data/exome/gnomad.withchr.bgz.vcf.gz`) by default — no need to pass them unless you want to use a different reference.
-
-For long-running jobs, use `screen` or `tmux`:
-
-```bash
-screen -S annotation
-nextflow -C conf/annotation.config run main_annotation.nf -profile docker ...
-```
+`--exome_vcf`, `--exome_index`, `--reference_fasta`, `--reference_fasta_index`, `--genes_bed` and `--genes_bed_index` already point to the reference files on the server by default — no need to pass them unless you want to use different ones.
 
 ---
 
@@ -106,9 +118,10 @@ All outputs are written to `--results_dir` (default: `./results`):
 results/
 └── vcf/
     ├── *_merged.vcf.gz        NOVOGENE only — merged SNP+Indel VCF
-    ├── *_norm.vcf.gz          normalised VCF
+    ├── *_norm.vcf.gz          normalised + left-aligned VCF
     ├── *_annotated.vcf.gz     gnomAD-annotated VCF
-    ├── *_filtered.vcf.gz      AF-filtered VCF (PASS + gnomAD_AF < 0.05)
+    ├── *_filtered.vcf.gz      AF-filtered VCF (PASS + rare or absent from gnomAD)
+    ├── *_genes.vcf.gz         gene-annotated VCF (INFO/GENE)
     └── *_final.vcf.gz         gene-filtered final VCF
 ```
 
@@ -129,16 +142,19 @@ results/
 ```
 .
 ├── main_annotation.nf               entry point
+├── run.sh                           wrapper script — the only thing analysts run
 ├── conf/
 │   └── annotation.config            standalone config for this pipeline
 ├── workflows/
 │   └── annotation_filtering.nf
-└── modules/local/
-    ├── merge_snp_indel.nf           NOVOGENE — merge SNP + Indel VCFs
-    ├── normalize_vcf.nf             normalise multiallelic sites
-    ├── annotate_vcf.nf              gnomAD annotation
-    ├── filter_af.nf                 PASS + AF filtering
-    └── filter_by_genes.nf           gene filtering
+├── modules/local/
+│   ├── merge_snp_indel.nf           NOVOGENE — merge SNP + Indel VCFs
+│   ├── normalize_vcf.nf             split multiallelics, left-align indels
+│   ├── annotate_vcf.nf              gnomAD annotation
+│   ├── filter_af.nf                 PASS + AF filtering
+│   ├── annotate_genes.nf            gene assignment by position overlap
+│   └── filter_by_genes.nf           gene filtering
+└── tests/                           synthetic and real-variant fixtures (see each README inside)
 ```
 
 ---
