@@ -154,7 +154,6 @@ results/
 │   ├── filter_af.nf                 PASS + AF filtering
 │   ├── annotate_genes.nf            gene assignment by position overlap
 │   └── filter_by_genes.nf           gene filtering
-└── tests/                           synthetic and real-variant fixtures (see each README inside)
 ```
 
 ---
