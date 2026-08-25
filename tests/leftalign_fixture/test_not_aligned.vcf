@@ -1,4 +1,0 @@
-##fileformat=VCFv4.2
-##contig=<ID=chr_test,length=20>
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-chr_test	8	.	AA	A	50	PASS	.

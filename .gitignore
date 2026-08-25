@@ -44,6 +44,5 @@ results/
 *.vcf.gz
 *.bcf
 
-# ...except small synthetic test fixtures (no patient data), tracked on purpose
-!tests/**/*.vcf
-!tests/**/*.fasta
+# Test fixtures — kept locally only, not tracked (see tests/*/README.md to rebuild)
+tests/
